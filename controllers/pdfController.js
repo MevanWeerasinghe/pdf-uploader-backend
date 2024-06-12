@@ -1,32 +1,37 @@
 const multer = require("multer");
 const path = require("path");
 const PDF = require("../models/PDF");
+const asyncHandler = require("express-async-handler");
 
+// Set up multer storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
+  destination: "uploads/",
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 
+// Set up multer upload
 const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
     if (file.mimetype === "application/pdf") {
-      cb(null, true);
+      cb(null, true); // Accept the file
     } else {
-      cb(new Error("Only PDFs are allowed"), false);
+      cb(new Error("Only PDFs are allowed"), false); // Reject the file
     }
   },
   limits: { fileSize: 5 * 1024 * 1024 },
 }).single("pdf");
 
-const uploadPDF = (req, res) => {
+//desc Upload a PDF
+//route POST /api/pdf/upload
+//access Private
+const uploadPDF = asyncHandler(async (req, res) => {
   upload(req, res, async (err) => {
     if (err) {
-      return res.status(400).json({ message: err.message });
+      res.status(400);
+      throw new Error(`Error: ${err.message}`);
     }
 
     const newPDF = new PDF({
@@ -35,34 +40,29 @@ const uploadPDF = (req, res) => {
       uploader: req.user._id,
     });
 
-    try {
-      await newPDF.save();
-      res.status(201).json(newPDF);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+    await newPDF.save();
+    res.status(201).json(newPDF);
   });
-};
+});
 
-const getPDFs = async (req, res) => {
-  try {
-    const pdfs = await PDF.find().populate("uploader", "username");
-    res.json(pdfs);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+//desc Get all PDFs
+//route GET /api/pdf
+//access Private
+const getPDFs = asyncHandler(async (req, res) => {
+  const pdfs = await PDF.find({ uploader: req.user._id });
+  res.json(pdfs);
+});
 
-const getPDF = async (req, res) => {
-  try {
-    const pdf = await PDF.findById(req.params.id);
-    if (!pdf) {
-      return res.status(404).json({ message: "PDF not found" });
-    }
-    res.sendFile(path.resolve(pdf.path));
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+//desc Get a PDF
+//route GET /api/pdf/:id
+//access Private
+const getPDF = asyncHandler(async (req, res) => {
+  const pdf = await PDF.findById(req.params.id);
+  if (!pdf) {
+    res.status(404);
+    throw new Error("PDF not found");
   }
-};
+  res.sendFile(path.resolve(pdf.path));
+});
 
 module.exports = { uploadPDF, getPDFs, getPDF };

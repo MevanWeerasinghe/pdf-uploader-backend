@@ -6,15 +6,16 @@ const authRoutes = require("./routes/authRoutes");
 const pdfRoutes = require("./routes/pdfRoutes");
 const logger = require("./middleware/logger");
 const connectDB = require("./config/dbConnection");
+const errorHandler = require("./middleware/errorHandler");
 
 connectDB();
 const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(morgan("combined", { stream: logger.stream }));
-
 app.use("/api/auth", authRoutes);
 app.use("/api/pdfs", pdfRoutes);
+app.use(errorHandler);
 
 const port = process.env.PORT || 5000;
 

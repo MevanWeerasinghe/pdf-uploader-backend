@@ -1,33 +1,48 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const asyncHandler = require("express-async-handler");
+const bcrypt = require("bcryptjs");
 
-const signUp = async (req, res) => {
+//desc Register a new user
+//route POST /api/auth/signup
+//access Public
+const signUp = asyncHandler(async (req, res) => {
   const { username, password } = req.body;
-  try {
-    const newUser = await User.create({ username, password });
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
-    res.status(201).json({ token });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+  const userExists = await User.findOne({ username });
+  if (userExists) {
+    res.status(400);
+    throw new Error("this username already exists");
   }
-};
 
-const login = async (req, res) => {
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const newUser = await User.create({ username, password: hashedPassword });
+
+  const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
+    expiresIn: "1m",
+  });
+  res.status(201).json({ token });
+});
+
+//desc Login a user
+//route POST /api/auth/login
+//access Public
+const login = asyncHandler(async (req, res) => {
   const { username, password } = req.body;
-  try {
-    const user = await User.findOne({ username });
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+  const user = await User.findOne({ username });
+  if (!user) {
+    res.status(401);
+    throw new Error("Invalid username");
+  }
+
+  if (await bcrypt.compare(password, user.password)) {
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "1m",
     });
-    res.json({ token });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(200).json({ token });
+  } else {
+    res.status(401);
+    throw new Error("password is incorrect");
   }
-};
+});
 
 module.exports = { signUp, login };
