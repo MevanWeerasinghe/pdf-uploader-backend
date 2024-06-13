@@ -57,16 +57,6 @@ JWT_SECRET=<Your secret>
 PORT=5000
 ```
 
-### Step 6: Create the .env File
-
-Create a .env file in the root directory of the project and add the following variables:
-
-```sh
-CONNECTION_STRING=<MongoDB database/table connection string>
-JWT_SECRET=<Your secret>
-PORT=5000
-```
-
 ### Running the Application
 
 ```sh
