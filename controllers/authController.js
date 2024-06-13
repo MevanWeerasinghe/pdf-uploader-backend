@@ -18,7 +18,7 @@ const signUp = asyncHandler(async (req, res) => {
   const newUser = await User.create({ username, password: hashedPassword });
 
   const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
-    expiresIn: "1m",
+    expiresIn: "10m",
   });
   res.status(201).json({ token });
 });
@@ -36,7 +36,7 @@ const login = asyncHandler(async (req, res) => {
 
   if (await bcrypt.compare(password, user.password)) {
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1m",
+      expiresIn: "10m",
     });
     res.status(200).json({ token });
   } else {
